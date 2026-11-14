@@ -1,0 +1,14 @@
+TAX INVOICE
+Seller: Acme Pvt Ltd
+Seller GSTIN: 07AAACA1234C1ZI
+Seller Phone: +91 98765 43210
+Buyer: Gupta Exports Pvt Ltd
+Buyer GSTIN: 27AADCG9753P1ZS
+Invoice No: ACME/S/2026/032
+Invoice Date: 2026-10-18
+Place of Supply: 27
+Category: goods
+Items (No | Description | HSN/SAC | Taxable Value | GST Rate):
+1 | Laptops (refurbished) | 8471 | 40,000.00 | 18%
+Total: 47,200.00
+Bank A/c No: 50100234567812  IFSC: HDFC0001234

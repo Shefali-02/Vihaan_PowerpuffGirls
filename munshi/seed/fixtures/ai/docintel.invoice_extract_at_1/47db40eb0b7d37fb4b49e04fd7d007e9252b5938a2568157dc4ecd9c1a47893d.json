@@ -1,0 +1,32 @@
+{
+  "source": "05_duplicate_of_01.txt",
+  "output": {
+    "invoice_no": "SOS/26-27/0142",
+    "invoice_date": "2026-10-05",
+    "seller_name": "Sharma Office Supplies Pvt Ltd",
+    "seller_gstin": "07AAFCS4321K1ZC",
+    "buyer_name": "Acme Pvt Ltd",
+    "buyer_gstin": "07AAACA1234C1ZI",
+    "place_of_supply": "07",
+    "category": "office_supplies",
+    "tax_total": null,
+    "total": "11800.00",
+    "lines": [
+      {
+        "description": "A4 paper, registers and stationery",
+        "hsn_sac": "4820",
+        "taxable_value": "10000.00",
+        "gst_rate_pct": "18",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.97,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}

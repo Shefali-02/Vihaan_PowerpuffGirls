@@ -1,0 +1,20 @@
+# Sale invoice -> journal: Dr Receivable; Cr Sales + Output CGST/SGST (intra) or IGST (inter).
+# DEMO RULESET: pending CA validation; not legal/tax advice.
+id: sale_gst
+version: "2026.04.1"
+doc_type: sale_invoice
+effective_from: 2017-07-01
+effective_to: null
+accounts:
+  default_income: "4100"
+  receivable: "1200"
+  output_cgst: "2310"
+  output_sgst: "2320"
+  output_igst: "2330"
+category_accounts:
+  goods: "4100"
+  services: "4200"
+  other: "4900"
+policy:
+  unregistered_customer_place_of_supply: workspace_state  # B2C default when no GSTIN / POS
+  rate_mismatch_with_hsn_table: review
