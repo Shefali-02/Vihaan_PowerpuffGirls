@@ -51,7 +51,7 @@ class PruneClient:
         last: Exception | None = None
         for attempt in range(RETRIES + 1):
             try:
-                r = httpx.post(f"{self.base}/v1/chat/completions", json=body, timeout=self.timeout,
+                r = httpx.post(f"{self.base}/chat/completions", json=body, timeout=self.timeout,
                                headers={"Authorization": f"Bearer {self.key}"})
                 if r.status_code >= 500:
                     raise httpx.HTTPStatusError(f"{r.status_code}", request=r.request, response=r)

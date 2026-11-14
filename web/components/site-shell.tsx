@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDemoRole } from "@/contexts/role-context";
 import { CopilotWidget } from "@/components/copilot-widget";
+import { MockLlmBadge } from "@/components/MockLlmBadge";
 
 
 const nav = [
@@ -49,6 +50,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <span className="mode-pill rounded-full border px-2.5 py-1.5 text-[9px] font-extrabold tracking-[.14em] text-[#71480d]">{mode}</span>
+            <MockLlmBadge mock={mode === "MOCK"} />
             <span className="trust-pill rounded-full border border-[#bcd8c5] bg-[#edf5ef] px-2.5 py-1.5 text-[9px] font-extrabold tracking-[.14em] text-[#176b45]">REVIEWED</span>
             <label className="sr-only" htmlFor="role-switch">Demo role</label><select id="role-switch" value={role} onChange={(event) => setRole(event.target.value as "Accountant" | "CA")} className="role-switch h-9 rounded-xl border px-2.5 text-xs font-semibold text-[#493a2a]"><option>Accountant</option><option>CA</option></select>
             <button type="button" aria-label="Notifications" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-[#eadfce] bg-white text-[#493a2a]"><svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" /><path d="M10 21h4" /></svg><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[#b84d1b]" /></button>
