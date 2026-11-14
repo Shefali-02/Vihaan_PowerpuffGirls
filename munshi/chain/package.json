@@ -1,0 +1,17 @@
+{
+  "name": "munshi-chain",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AnchorRegistry: stores Merkle roots of Munshi audit batches (hashes only).",
+  "scripts": {
+    "node": "hardhat node --hostname 0.0.0.0",
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.0",
+    "solc": "^0.8.24"
+  }
+}

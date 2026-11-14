@@ -1,0 +1,27 @@
+# Purchase invoice -> journal. DEMO RULESET: pending CA validation; not legal/tax advice.
+id: purchase_gst
+version: "2026.04.1"
+doc_type: purchase_invoice
+effective_from: 2017-07-01
+effective_to: null
+accounts:
+  default_expense: "5100"
+  payable: "2100"
+  input_cgst: "1310"
+  input_sgst: "1320"
+  input_igst: "1330"
+category_accounts:
+  general: "5100"
+  office_supplies: "5200"
+  professional_fees: "5300"
+  rent: "5400"
+  software: "5500"
+  travel: "5600"
+  food_beverages: "5700"
+  repairs: "5800"
+  telecom: "5900"
+policy:
+  unregistered_vendor:
+    itc: false          # no input tax credit without a vendor GSTIN
+    review: true        # always route to human review
+  rate_mismatch_with_hsn_table: review

@@ -1,0 +1,14 @@
+TAX INVOICE
+Seller: Chai Point Traders
+Seller GSTIN: 07AAGFC2468M1Z5
+Seller Phone: +91 98765 43210
+Buyer: Acme Pvt Ltd
+Buyer GSTIN: 07AAACA1234C1ZI
+Invoice No: CPT-0102
+Invoice Date: 2026-10-28
+Place of Supply: 07
+Category: general
+Items (No | Description | HSN/SAC | Taxable Value | GST Rate):
+1 | Green tea, 5 kg | 0902 | 1,500.00 | 5%
+Total: 1,800.00
+Bank A/c No: 50100234567812  IFSC: HDFC0001234

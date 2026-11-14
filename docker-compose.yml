@@ -1,0 +1,59 @@
+# Root docker-compose: runs the full stack (backend API + frontend web) together.
+# For the chain + postgres setup see munshi/infra/docker-compose.yml.
+#
+# Quick start (SQLite + mock LLM + mock anchor, no Postgres/Hardhat needed):
+#   docker compose up --build
+#
+# Then open http://localhost:3000
+
+name: munshi-full
+
+services:
+  api:
+    build:
+      context: ./munshi
+      dockerfile: infra/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "sqlite:////app/data/munshi.db"
+      JWT_SECRET: "${JWT_SECRET:-dev-only-change-me-dev-only-change-me}"
+      JWT_TTL_MINUTES: "720"
+      LLM_MODE: "${LLM_MODE:-mock}"
+      PRUNE_BASE_URL: "${PRUNE_BASE_URL:-https://prune.example}"
+      PRUNE_API_KEY: "${PRUNE_API_KEY:-}"
+      ANCHOR_MODE: "${ANCHOR_MODE:-mock}"
+      CHAIN_RPC_URL: "${CHAIN_RPC_URL:-http://localhost:8545}"
+      DEPLOYMENT_FILE: "/app/chain/deployments/local.json"
+      PUBLIC_BASE_URL: "http://localhost:3000"
+      CORS_ORIGINS: "http://localhost:3000"
+      EXPORT_OPENAPI: "true"
+    volumes:
+      - api_data:/app/data
+    # Seed the demo workspace on every startup (idempotent).
+    command: >
+      sh -c "
+        cd /app &&
+        python -m seed.seed &&
+        uvicorn apps.api.main:app --host 0.0.0.0 --port 8000
+      "
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 5s
+      retries: 15
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: "http://localhost:8000"
+      NEXT_PUBLIC_USE_MOCK: "false"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  api_data:

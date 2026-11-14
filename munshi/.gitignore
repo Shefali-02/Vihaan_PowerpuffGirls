@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.hypothesis/
+.venv/
+venv/
+.env
+*.db
+*.db-journal
+chain/node_modules/
+chain/artifacts/
+chain/cache/
+chain/typechain-types/
+chain/deployments/local.json
+chain/deployments/*.abi.json
+*.tampered.pdf
+*-tampered.pdf

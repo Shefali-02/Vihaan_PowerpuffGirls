@@ -1,0 +1,19 @@
+{
+  "name": "Rs 25,000 IT consulting @18% from a Karnataka vendor (inter-state, IGST)",
+  "workspace": {"gstin": "07AAACA1234C1ZI", "state": "07"},
+  "facts": {
+    "doc_type": "purchase_invoice", "invoice_no": "INF/2026/7781", "invoice_date": "2026-10-12",
+    "counterparty_name": "Infotech Solutions Pvt Ltd", "counterparty_gstin": "29AABCI5678L1ZW",
+    "category": "professional_fees",
+    "lines": [{"description": "ERP setup", "hsn_sac": "998313", "taxable_paise": 2500000, "gst_rate_bp": 1800}],
+    "declared_total_paise": 2950000
+  },
+  "expected": {
+    "supply_type": "INTER", "needs_review": false,
+    "lines": [
+      {"account_code": "1330", "debit_paise": 450000, "credit_paise": 0, "tax_tag": "INPUT_IGST"},
+      {"account_code": "5300", "debit_paise": 2500000, "credit_paise": 0, "tax_tag": "INWARD_TAXABLE"},
+      {"account_code": "2100", "debit_paise": 0, "credit_paise": 2950000, "tax_tag": null}
+    ]
+  }
+}
