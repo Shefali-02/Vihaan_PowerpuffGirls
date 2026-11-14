@@ -3,6 +3,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  output: "standalone", // enables the minimal Docker image produced by `next build`
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {
