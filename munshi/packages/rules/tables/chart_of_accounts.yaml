@@ -1,0 +1,29 @@
+# Indian SME chart of accounts (demo). tax_tag links ledger lines to GST reporting.
+version: "2026.04.1"
+accounts:
+  - {code: "1000", name: "Cash in Hand", type: ASSET}
+  - {code: "1010", name: "Bank Account", type: ASSET}
+  - {code: "1200", name: "Trade Receivables (Sundry Debtors)", type: ASSET}
+  - {code: "1310", name: "Input CGST", type: ASSET, tax_tag: INPUT_CGST}
+  - {code: "1320", name: "Input SGST", type: ASSET, tax_tag: INPUT_SGST}
+  - {code: "1330", name: "Input IGST", type: ASSET, tax_tag: INPUT_IGST}
+  - {code: "1500", name: "Fixed Assets", type: ASSET}
+  - {code: "2100", name: "Trade Payables (Sundry Creditors)", type: LIABILITY}
+  - {code: "2310", name: "Output CGST", type: LIABILITY, tax_tag: OUTPUT_CGST}
+  - {code: "2320", name: "Output SGST", type: LIABILITY, tax_tag: OUTPUT_SGST}
+  - {code: "2330", name: "Output IGST", type: LIABILITY, tax_tag: OUTPUT_IGST}
+  - {code: "2400", name: "TDS Payable", type: LIABILITY}
+  - {code: "3000", name: "Share Capital", type: EQUITY}
+  - {code: "3100", name: "Reserves and Surplus", type: EQUITY}
+  - {code: "4100", name: "Sales - Goods", type: INCOME}
+  - {code: "4200", name: "Sales - Services", type: INCOME}
+  - {code: "4900", name: "Other Income", type: INCOME}
+  - {code: "5100", name: "Purchases and General Expenses", type: EXPENSE}
+  - {code: "5200", name: "Office Supplies and Stationery", type: EXPENSE}
+  - {code: "5300", name: "Professional Fees", type: EXPENSE}
+  - {code: "5400", name: "Rent", type: EXPENSE}
+  - {code: "5500", name: "Software and Subscriptions", type: EXPENSE}
+  - {code: "5600", name: "Travel and Conveyance", type: EXPENSE}
+  - {code: "5700", name: "Staff Welfare - Food and Beverages", type: EXPENSE}
+  - {code: "5800", name: "Repairs and Maintenance", type: EXPENSE}
+  - {code: "5900", name: "Telephone and Internet", type: EXPENSE}

@@ -1,0 +1,34 @@
+{
+  "b2b": [
+    {
+      "supplier_gstin": "07AAFCS4321K1ZC",
+      "invoice_no": "SOS/26-27/0142",
+      "date": "2026-10-05",
+      "taxable_paise": 1000000,
+      "cgst_paise": 90000,
+      "sgst_paise": 90000,
+      "igst_paise": 0,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "29AABCI5678L1ZW",
+      "invoice_no": "INF/2026/7781",
+      "date": "2026-10-12",
+      "taxable_paise": 2500000,
+      "cgst_paise": 0,
+      "sgst_paise": 0,
+      "igst_paise": 450000,
+      "itc_available": true
+    },
+    {
+      "supplier_gstin": "07AAGFC2468M1Z5",
+      "invoice_no": "CPT-0091",
+      "date": "2026-10-20",
+      "taxable_paise": 200000,
+      "cgst_paise": 5000,
+      "sgst_paise": 5000,
+      "igst_paise": 0,
+      "itc_available": true
+    }
+  ]
+}

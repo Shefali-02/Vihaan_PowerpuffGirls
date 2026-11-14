@@ -1,0 +1,14 @@
+TAX INVOICE
+Seller: Acme Pvt Ltd
+Seller GSTIN: 07AAACA1234C1ZI
+Seller Phone: +91 98765 43210
+Buyer: Mehta Retail LLP
+Buyer GSTIN: 07AAKFM1357N1ZV
+Invoice No: ACME/S/2026/031
+Invoice Date: 2026-10-15
+Place of Supply: 07
+Category: services
+Items (No | Description | HSN/SAC | Taxable Value | GST Rate):
+1 | Implementation services | 998313 | 50,000.00 | 18%
+Total: 59,000.00
+Bank A/c No: 50100234567812  IFSC: HDFC0001234

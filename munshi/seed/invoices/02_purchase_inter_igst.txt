@@ -1,0 +1,14 @@
+TAX INVOICE
+Seller: Infotech Solutions Pvt Ltd
+Seller GSTIN: 29AABCI5678L1ZW
+Seller Phone: +91 98765 43210
+Buyer: Acme Pvt Ltd
+Buyer GSTIN: 07AAACA1234C1ZI
+Invoice No: INF/2026/7781
+Invoice Date: 2026-10-12
+Place of Supply: 07
+Category: professional_fees
+Items (No | Description | HSN/SAC | Taxable Value | GST Rate):
+1 | IT consulting - ERP setup | 998313 | 25,000.00 | 18%
+Total: 29,500.00
+Bank A/c No: 50100234567812  IFSC: HDFC0001234
