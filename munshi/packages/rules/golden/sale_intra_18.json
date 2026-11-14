@@ -1,0 +1,19 @@
+{
+  "name": "Rs 50,000 services sold to a Delhi customer @18% (intra-state)",
+  "workspace": {"gstin": "07AAACA1234C1ZI", "state": "07"},
+  "facts": {
+    "doc_type": "sale_invoice", "invoice_no": "ACME/S/2026/031", "invoice_date": "2026-10-15",
+    "counterparty_name": "Mehta Retail LLP", "counterparty_gstin": "07AAKFM1357N1ZV", "category": "services",
+    "lines": [{"description": "Implementation services", "hsn_sac": "998313", "taxable_paise": 5000000, "gst_rate_bp": 1800}],
+    "declared_total_paise": 5900000
+  },
+  "expected": {
+    "supply_type": "INTRA", "needs_review": false,
+    "lines": [
+      {"account_code": "1200", "debit_paise": 5900000, "credit_paise": 0, "tax_tag": null},
+      {"account_code": "2310", "debit_paise": 0, "credit_paise": 450000, "tax_tag": "OUTPUT_CGST"},
+      {"account_code": "2320", "debit_paise": 0, "credit_paise": 450000, "tax_tag": "OUTPUT_SGST"},
+      {"account_code": "4200", "debit_paise": 0, "credit_paise": 5000000, "tax_tag": "OUTWARD_TAXABLE"}
+    ]
+  }
+}

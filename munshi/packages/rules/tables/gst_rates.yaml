@@ -1,0 +1,21 @@
+# GST rate table, effective-dated. DEMO VALUES pending CA validation; not legal/tax advice.
+# Rates are basis points (1800 = 18%). Never hard-code rates in code: edit this file (or the gst_rates table).
+# NOTE: the Sept-2025 GST rate rationalisation is NOT modelled here; a CA must add new effective-dated rows.
+version: "2026.04.1"
+slab_sets:
+  - effective_from: 2017-07-01
+    effective_to: null
+    slabs_bp: [0, 500, 1200, 1800, 2800]
+rates:
+  - {hsn_sac: "4820",   rate_bp: 1800, effective_from: 2017-07-01, description: "Registers, notebooks, stationery"}
+  - {hsn_sac: "8471",   rate_bp: 1800, effective_from: 2017-07-01, description: "Computers and peripherals"}
+  - {hsn_sac: "0902",   rate_bp: 500,  effective_from: 2017-07-01, description: "Tea"}
+  - {hsn_sac: "1006",   rate_bp: 500,  effective_from: 2017-07-01, description: "Rice (branded, packaged)"}
+  - {hsn_sac: "9963",   rate_bp: 500,  effective_from: 2017-07-01, description: "Restaurant services (non-AC, no ITC scheme)"}
+  - {hsn_sac: "997212", rate_bp: 1800, effective_from: 2017-07-01, description: "Rental of commercial property"}
+  - {hsn_sac: "998313", rate_bp: 1800, effective_from: 2017-07-01, description: "IT consulting / software services"}
+  - {hsn_sac: "998221", rate_bp: 1800, effective_from: 2017-07-01, description: "Accounting and bookkeeping services"}
+  - {hsn_sac: "996411", rate_bp: 500,  effective_from: 2017-07-01, description: "Local passenger transport"}
+  - {hsn_sac: "8703",   rate_bp: 2800, effective_from: 2017-07-01, description: "Motor cars"}
+  - {hsn_sac: "4901",   rate_bp: 0,    effective_from: 2017-07-01, description: "Printed books"}
+  - {hsn_sac: "6403",   rate_bp: 1200, effective_from: 2017-07-01, description: "Footwear (demo row)"}

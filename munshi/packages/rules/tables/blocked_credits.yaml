@@ -1,0 +1,8 @@
+# CA MUST VALIDATE. Demo list of expense categories whose ITC is blocked (cf. Section 17(5) CGST Act).
+# Not legal/tax advice. Blocked GST is added to the expense instead of being claimed as input credit.
+version: "2026.04.1"
+blocked_categories:
+  food_beverages: "Food and beverages: ITC generally blocked (s.17(5)(b)) - CA to confirm exceptions"
+  motor_vehicles: "Motor vehicles for personal transport: ITC generally blocked (s.17(5)(a))"
+  club_membership: "Club / health / fitness membership: ITC blocked (s.17(5)(b))"
+  personal_consumption: "Goods/services for personal consumption: ITC blocked (s.17(5)(g))"

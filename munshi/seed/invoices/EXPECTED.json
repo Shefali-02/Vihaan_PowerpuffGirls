@@ -1,0 +1,12 @@
+{
+  "01_purchase_intra_18.txt": "DRAFT_AI",
+  "02_purchase_inter_igst.txt": "DRAFT_AI",
+  "03_purchase_5pct.txt": "DRAFT_AI",
+  "04_bad_gstin.txt": "NEEDS_REVIEW",
+  "05_duplicate_of_01.txt": "DUPLICATE",
+  "06_arithmetic_mismatch.txt": "NEEDS_REVIEW",
+  "07_sale_intra.txt": "DRAFT_AI",
+  "08_sale_inter.txt": "DRAFT_AI",
+  "09_unregistered_vendor.txt": "NEEDS_REVIEW",
+  "10_gateway_failure.txt": "MANUAL_ENTRY_REQUIRED"
+}
