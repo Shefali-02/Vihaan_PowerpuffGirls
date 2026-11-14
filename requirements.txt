@@ -1,0 +1,26 @@
+# Munshi Backend - Member 2 Dependencies
+# Per Blueprint Section 14: Technology Stack
+
+# Web Framework
+fastapi==0.115.0
+uvicorn[standard]==0.30.0
+
+# Data Validation
+pydantic==2.9.0
+
+# File Upload Support
+python-multipart==0.0.9
+
+# PDF Processing
+pymupdf==1.24.0
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Optional: If you need database later
+# sqlalchemy==2.0.23
+# psycopg2-binary==2.9.9
+
+# Optional: If Member 3 needs these
+# httpx==0.25.0
+# redis==5.0.1
