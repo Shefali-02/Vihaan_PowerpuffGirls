@@ -1,0 +1,32 @@
+{
+  "source": "09_unregistered_vendor.txt",
+  "output": {
+    "invoice_no": "RC-17",
+    "invoice_date": "2026-10-30",
+    "seller_name": "Ramesh Carpentry Works",
+    "seller_gstin": null,
+    "buyer_name": "Acme Pvt Ltd",
+    "buyer_gstin": "07AAACA1234C1ZI",
+    "place_of_supply": "07",
+    "category": "repairs",
+    "tax_total": null,
+    "total": "3000.00",
+    "lines": [
+      {
+        "description": "Office cabinet repair (labour)",
+        "hsn_sac": null,
+        "taxable_value": "3000.00",
+        "gst_rate_pct": "0",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.0,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}

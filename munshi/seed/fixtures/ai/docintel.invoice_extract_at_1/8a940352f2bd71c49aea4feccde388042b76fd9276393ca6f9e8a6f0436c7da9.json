@@ -1,0 +1,32 @@
+{
+  "source": "04_bad_gstin.txt",
+  "output": {
+    "invoice_no": "SOS/26-27/0150",
+    "invoice_date": "2026-10-25",
+    "seller_name": "Sharma Office Supplies Pvt Ltd",
+    "seller_gstin": "07AAFCS4321K1Z0",
+    "buyer_name": "Acme Pvt Ltd",
+    "buyer_gstin": "07AAACA1234C1ZI",
+    "place_of_supply": "07",
+    "category": "office_supplies",
+    "tax_total": null,
+    "total": "4720.00",
+    "lines": [
+      {
+        "description": "Printer cartridges",
+        "hsn_sac": "8443",
+        "taxable_value": "4000.00",
+        "gst_rate_pct": "18",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.97,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "name": "Rs 10,000 office supplies @18% from a Delhi vendor (intra-state)",
+  "workspace": {"gstin": "07AAACA1234C1ZI", "state": "07"},
+  "facts": {
+    "doc_type": "purchase_invoice", "invoice_no": "SOS/26-27/0142", "invoice_date": "2026-10-05",
+    "counterparty_name": "Sharma Office Supplies Pvt Ltd", "counterparty_gstin": "07AAFCS4321K1ZC",
+    "category": "office_supplies",
+    "lines": [{"description": "Stationery", "hsn_sac": "4820", "taxable_paise": 1000000, "gst_rate_bp": 1800}],
+    "declared_total_paise": 1180000
+  },
+  "expected": {
+    "supply_type": "INTRA", "needs_review": false,
+    "lines": [
+      {"account_code": "1310", "debit_paise": 90000, "credit_paise": 0, "tax_tag": "INPUT_CGST"},
+      {"account_code": "1320", "debit_paise": 90000, "credit_paise": 0, "tax_tag": "INPUT_SGST"},
+      {"account_code": "5200", "debit_paise": 1000000, "credit_paise": 0, "tax_tag": "INWARD_TAXABLE"},
+      {"account_code": "2100", "debit_paise": 0, "credit_paise": 1180000, "tax_tag": null}
+    ]
+  }
+}
