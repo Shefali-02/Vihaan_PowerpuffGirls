@@ -1,0 +1,32 @@
+{
+  "source": "08_sale_inter.txt",
+  "output": {
+    "invoice_no": "ACME/S/2026/032",
+    "invoice_date": "2026-10-18",
+    "seller_name": "Acme Pvt Ltd",
+    "seller_gstin": "07AAACA1234C1ZI",
+    "buyer_name": "Gupta Exports Pvt Ltd",
+    "buyer_gstin": "27AADCG9753P1ZS",
+    "place_of_supply": "27",
+    "category": "goods",
+    "tax_total": null,
+    "total": "47200.00",
+    "lines": [
+      {
+        "description": "Laptops (refurbished)",
+        "hsn_sac": "8471",
+        "taxable_value": "40000.00",
+        "gst_rate_pct": "18",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.97,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}

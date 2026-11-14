@@ -1,0 +1,32 @@
+{
+  "source": "03_purchase_5pct.txt",
+  "output": {
+    "invoice_no": "CPT-0091",
+    "invoice_date": "2026-10-20",
+    "seller_name": "Chai Point Traders",
+    "seller_gstin": "07AAGFC2468M1Z5",
+    "buyer_name": "Acme Pvt Ltd",
+    "buyer_gstin": "07AAACA1234C1ZI",
+    "place_of_supply": "07",
+    "category": "general",
+    "tax_total": null,
+    "total": "2100.00",
+    "lines": [
+      {
+        "description": "Assam tea, 20 kg pantry stock",
+        "hsn_sac": "0902",
+        "taxable_value": "2000.00",
+        "gst_rate_pct": "5",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.97,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}

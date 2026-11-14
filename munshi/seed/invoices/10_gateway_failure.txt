@@ -1,0 +1,15 @@
+TAX INVOICE
+Seller: Sharma Office Supplies Pvt Ltd
+Seller GSTIN: 07AAFCS4321K1ZC
+Seller Phone: +91 98765 43210
+Buyer: Acme Pvt Ltd
+Buyer GSTIN: 07AAACA1234C1ZI
+Invoice No: SOS/26-27/0160
+Invoice Date: 2026-11-02
+Place of Supply: 07
+Category: office_supplies
+Items (No | Description | HSN/SAC | Taxable Value | GST Rate):
+1 | Whiteboard markers | 9608 | 800.00 | 18%
+Total: 944.00
+Bank A/c No: 50100234567812  IFSC: HDFC0001234
+(fixture simulates an AI gateway outage)

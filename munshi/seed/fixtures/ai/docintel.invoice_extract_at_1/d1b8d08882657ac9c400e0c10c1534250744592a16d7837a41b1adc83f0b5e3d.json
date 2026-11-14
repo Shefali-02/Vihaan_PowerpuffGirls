@@ -1,0 +1,32 @@
+{
+  "source": "02_purchase_inter_igst.txt",
+  "output": {
+    "invoice_no": "INF/2026/7781",
+    "invoice_date": "2026-10-12",
+    "seller_name": "Infotech Solutions Pvt Ltd",
+    "seller_gstin": "29AABCI5678L1ZW",
+    "buyer_name": "Acme Pvt Ltd",
+    "buyer_gstin": "07AAACA1234C1ZI",
+    "place_of_supply": "07",
+    "category": "professional_fees",
+    "tax_total": null,
+    "total": "29500.00",
+    "lines": [
+      {
+        "description": "IT consulting - ERP setup",
+        "hsn_sac": "998313",
+        "taxable_value": "25000.00",
+        "gst_rate_pct": "18",
+        "category": null
+      }
+    ],
+    "confidence": {
+      "invoice_no": 0.97,
+      "invoice_date": 0.97,
+      "seller_gstin": 0.97,
+      "buyer_gstin": 0.97,
+      "total": 0.97,
+      "lines": 0.97
+    }
+  }
+}
