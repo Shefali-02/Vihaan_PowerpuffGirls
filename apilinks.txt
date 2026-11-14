@@ -1,0 +1,11 @@
+prune api link = prune_qmaHI-kANbHASe-bAgk_e7UA7HHjh0iQ
+gemini auto api link = AQ.Ab8RN6IH7oXNQ8MINILMoTgnVPsz4Pjl4t5W5_pJ0WKeQxUfoA
+
+
+curl https://api.withprune.com/v1/proxy/gemini/generateContent \
+  -H "X-Prune-Key: prune_qmaHI-kANbHASe-bAgk_e7UA7HHjh0iQ" \
+  -H "Content-Type: application/json" \
+  -d '{"model": "gemini-3.5-flash-lite", "messages": [{"role": "user", "content": "Hello"}]}'
+
+prune base url = https://api.withprune.com/v1
+
