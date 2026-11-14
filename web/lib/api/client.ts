@@ -266,6 +266,19 @@ export const api = {
 
     const invoices = proposalsRaw.items.map(proposalToInvoice);
 
+    // Fetch draft journals: collect draft_entry_ids from proposals and resolve in parallel.
+    const draftEntryIds = proposalsRaw.items
+      .map((p) => p.draft_entry_id)
+      .filter((id): id is string => !!id);
+
+    const journals = await Promise.all(
+      draftEntryIds.map((id) =>
+        request<Parameters<typeof journalOutToJournal>[0]>(`/journals/${encodeURIComponent(id)}`)
+          .then(journalOutToJournal)
+          .catch(() => null)
+      )
+    ).then((results) => results.filter((j): j is Journal => j !== null));
+
     // The backend PnlOut is period-based, not month-based.  Build a minimal
     // PnlReport shape so the existing dashboard charts keep working.
     const pnl: PnlReport = {
@@ -296,7 +309,7 @@ export const api = {
         ca: "CA Demo",
       },
       invoices,
-      journals: [], // journals are not needed by the snapshot; the review screen fetches them separately
+      journals,
       ledger: [],
       pnl,
     };
@@ -333,20 +346,43 @@ export const api = {
 
   // ── Journals ──────────────────────────────────────────────────────────────
 
-  draftJournal: (input: DraftJournalInput): Promise<Journal> => {
+  draftJournal: async (input: DraftJournalInput): Promise<Journal> => {
     if (useMock) return mock.draftMockJournal(input);
 
-    // The backend `POST /v1/journals/draft` expects InvoiceFacts (the rules engine input),
-    // not a pre-built journal line list.  Reconstruct minimal InvoiceFacts from the
-    // display-side data the inbox screen passes in.  Amounts are in rupees; convert to paise.
-    const totalPaise = Math.round(input.lines.reduce((sum, line) => sum + line.debit, 0) * 100);
-    const taxLine = input.lines.find((line) => line.account.toLowerCase().includes("gst"));
-    const taxPaise = taxLine ? Math.round(taxLine.debit * 100) : 0;
-    const taxablePaise = totalPaise - taxPaise;
-    // Derive a rough GST rate in basis points (1800 = 18%).
-    const taxRateBp = taxablePaise > 0 ? Math.round((taxPaise / taxablePaise) * 10000) : 1800;
+    // In live mode the pipeline already auto-drafts a journal when a document is
+    // uploaded (docintel pipeline → ledger.create_draft). We fetch that draft by
+    // looking up the proposal for this document_id and reading its draft_entry_id.
+    // If no draft exists yet we create one via the proper InvoiceFacts path.
+    const proposals = await request<{
+      items: { document_id: string; draft_entry_id: string | null; status: string }[];
+    }>("/proposals");
 
-    // Parse date from DD-MM-YYYY or YYYY-MM-DD.
+    const proposal = proposals.items.find((p) => p.document_id === input.invoiceId);
+    if (proposal?.draft_entry_id) {
+      // Draft already exists — fetch and return it without calling the engine again.
+      return request<Parameters<typeof journalOutToJournal>[0]>(
+        `/journals/${encodeURIComponent(proposal.draft_entry_id)}`
+      ).then(journalOutToJournal);
+    }
+
+    // No auto-draft yet (e.g. NEEDS_REVIEW without a draft). Convert the display
+    // amounts to paise and snap the GST rate to the nearest valid slab so the
+    // rules engine accepts it.
+    const VALID_SLABS_BP = [0, 500, 1200, 1800, 2800];
+    const snapSlab = (bp: number) =>
+      VALID_SLABS_BP.reduce((best, s) => (Math.abs(s - bp) < Math.abs(best - bp) ? s : best));
+
+    // All display amounts are in whole rupees — multiply by 100 to get paise.
+    const totalDebitRupees = input.lines.reduce((sum, l) => sum + l.debit, 0);
+    const gstLine = input.lines.find((l) => l.account.toLowerCase().includes("gst"));
+    const taxRupees  = gstLine ? gstLine.debit : 0;
+    const baseRupees = totalDebitRupees - taxRupees;
+
+    const taxablePaise = Math.round(baseRupees * 100);
+    const rawBp = baseRupees > 0 ? Math.round((taxRupees / baseRupees) * 10000) : 1800;
+    const gstRateBp   = snapSlab(rawBp);
+
+    // Parse date from DD-MM-YYYY → YYYY-MM-DD.
     let invoiceDateIso = input.date;
     if (/^\d{2}-\d{2}-\d{4}$/.test(input.date)) {
       const [dd, mm, yyyy] = input.date.split("-");
@@ -360,15 +396,8 @@ export const api = {
       counterparty_name: input.description.split(" — ")[0] ?? input.description,
       counterparty_gstin: null,
       category: input.lines[0]?.account ?? null,
-      lines: [
-        {
-          description: input.description,
-          taxable_paise: taxablePaise,
-          gst_rate_bp: taxRateBp,
-          category: input.lines[0]?.account ?? null,
-        },
-      ],
-      declared_total_paise: totalPaise,
+      lines: [{ description: input.description, taxable_paise: taxablePaise, gst_rate_bp: gstRateBp }],
+      declared_total_paise: Math.round(totalDebitRupees * 100),
     };
 
     return request<Parameters<typeof journalOutToJournal>[0]>("/journals/draft", {

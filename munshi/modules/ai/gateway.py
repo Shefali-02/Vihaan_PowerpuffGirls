@@ -2,6 +2,10 @@
 
 Flow: redaction -> prompt render (data delimited) -> Prune or mock -> schema validation -> ai_runs row.
 Failures never fall back to a direct provider: callers route to MANUAL_ENTRY_REQUIRED.
+
+When LLM_MODE=prune the gateway is built via modules.aintegration.build_gateway which uses
+the new LlmGateway (with retry, redaction, structured-output validation) backed by PruneClient.
+When LLM_MODE=mock the original PruneMock is used directly for speed and determinism.
 """
 from __future__ import annotations
 
@@ -55,16 +59,42 @@ def get_gateway() -> LlmGateway:
     mode = get_settings().LLM_MODE.lower()
     if mode == "prune":
         from modules.ai.prune_client import PruneClient
-
         return PruneClient()
     from modules.ai.prune_mock import PruneMock
-
     return PruneMock()
 
 
 def current_mode() -> str:
     return "PRUNE" if get_settings().LLM_MODE.lower() == "prune" else "MOCK"
 
+
+# ---------------------------------------------------------------------------
+# aintegration gateway — richer pipeline with retry/redaction/schema repair.
+# Used by modules that import directly from aintegration (InvoiceExtractor).
+# ---------------------------------------------------------------------------
+
+_aintegration_gateway = None
+_aintegration_gateway_mode: str | None = None
+
+
+def get_aintegration_gateway():
+    """Return (and cache) the aintegration LlmGateway instance.
+
+    Uses PruneClient when PRUNE_BASE_URL + PRUNE_API_KEY are present and
+    LLM_MODE != 'mock'; falls back to PruneMock otherwise.
+    """
+    global _aintegration_gateway, _aintegration_gateway_mode
+    mode = get_settings().LLM_MODE.lower()
+    if _aintegration_gateway is None or _aintegration_gateway_mode != mode:
+        from modules.aintegration import build_gateway
+        _aintegration_gateway = build_gateway()
+        _aintegration_gateway_mode = mode
+    return _aintegration_gateway
+
+
+# ---------------------------------------------------------------------------
+# Original run_structured — used by docintel.pipeline and direct callers.
+# ---------------------------------------------------------------------------
 
 def run_structured(s: Session, workspace_id: str, prompt_id: str, document_text: str,
                    validate: Validator | None = None) -> LlmResponse:
