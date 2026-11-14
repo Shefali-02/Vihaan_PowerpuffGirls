@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     PRUNE_API_KEY: str = ""
     PRUNE_MODEL: str = "prune-default"
     PRUNE_TIMEOUT_S: float = 30.0
+    # PRUNE_MODE is read by aintegration.build_gateway; "mock" forces PruneMock even when key is set.
+    PRUNE_MODE: str = "live"
 
     # Anchoring: "hardhat" (falls back to mock if node unreachable) or "mock".
     ANCHOR_MODE: str = "hardhat"
