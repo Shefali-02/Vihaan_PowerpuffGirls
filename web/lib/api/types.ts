@@ -1,6 +1,15 @@
-/* Purpose: Shared frontend contracts for the versioned accounting API. */
-export type TrustState = "DRAFT BY AI" | "REVIEWED" | "APPROVED" | "ANCHORED";
+﻿/* Purpose: Shared frontend contracts for the versioned accounting API. */
+export type TrustState =
+  | "DRAFT BY AI"
+  | "REVIEWED"
+  | "APPROVED"
+  | "ANCHORED"
+  | "NEEDS REVIEW"
+  | "DUPLICATE"
+  | "MANUAL ENTRY";
+
 export type DemoRole = "Accountant" | "CA";
+
 export type Invoice = {
   id: string; number: string; supplier: string; date: string; dueDate: string; amount: number;
   base: number; tax: number; taxRate: number; category: string; gstin: string; status: TrustState;
@@ -17,4 +26,10 @@ export type DraftJournalInput = { invoiceId: string; description: string; date: 
 export type ApproveInput = { note?: string; signer: string };
 export type VerifyInput = { hash: string };
 export type ApproveResponse = { journal: Journal; trustState: TrustState; signedBy: string; anchorTx: string };
-export type CompanySnapshot = { company: { name: string; gstin: string; fy: string; preparer: string; ca: string }; invoices: Invoice[]; journals: Journal[]; ledger: { id: string; date: string; period: string; account: string; debit: number; credit: number; source: string; status: string }[]; pnl: PnlReport };
+export type CompanySnapshot = {
+  company: { name: string; gstin: string; fy: string; preparer: string; ca: string };
+  invoices: Invoice[];
+  journals: Journal[];
+  ledger: { id: string; date: string; period: string; account: string; debit: number; credit: number; source: string; status: string }[];
+  pnl: PnlReport;
+};

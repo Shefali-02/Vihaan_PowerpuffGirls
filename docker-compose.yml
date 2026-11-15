@@ -1,4 +1,4 @@
-# Root docker-compose: runs the full stack (backend API + frontend web) together.
+﻿# Root docker-compose: runs the full stack (backend API + frontend web) together.
 # For the chain + postgres setup see munshi/infra/docker-compose.yml.
 #
 # Quick start (SQLite + mock LLM + mock anchor, no Postgres/Hardhat needed):
@@ -57,3 +57,4 @@ services:
 
 volumes:
   api_data:
+

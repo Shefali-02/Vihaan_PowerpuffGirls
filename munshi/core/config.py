@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # AI: "mock" (default) or "prune". There is no direct-provider fallback.
     LLM_MODE: str = "mock"
-    PRUNE_BASE_URL: str = "https://prune.invalid"
+    PRUNE_BASE_URL: str = "https://api.withprune.com/v1"
     PRUNE_API_KEY: str = ""
     PRUNE_MODEL: str = "prune-default"
     PRUNE_TIMEOUT_S: float = 30.0
@@ -35,10 +35,11 @@ class Settings(BaseSettings):
     AUTO_DRAFT_AMOUNT_LIMIT_PAISE: int = 10_000_000  # Rs 1,00,000
 
     PUBLIC_BASE_URL: str = "http://localhost:8000"
-    CORS_ORIGINS: str = "*"
+    CORS_ORIGINS: str = "http://localhost:3000"
     EXPORT_OPENAPI: bool = True
 
 
 @lru_cache
 def get_settings() -> Settings:
     return Settings()
+

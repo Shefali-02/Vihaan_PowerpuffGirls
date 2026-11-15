@@ -1,15 +1,11 @@
-/*
+﻿/*
  * Purpose: One typed boundary for exactly the versioned endpoints used by this frontend.
  *
  * Live mode (NEXT_PUBLIC_USE_MOCK=false):
  *   - All calls go to NEXT_PUBLIC_API_BASE_URL (default http://localhost:8000).
- *   - On the first real request the client auto-logs in as the demo accountant and
- *     caches the JWT in sessionStorage under "munshi_token".  Any page can call
- *     auth.logout() to clear it and force re-login on the next request.
- *   - getCompanySnapshot() assembles the CompanySnapshot from three parallel calls:
- *       GET /v1/auth/me  →  company header
- *       GET /v1/proposals (status=DRAFT_AI, NEEDS_REVIEW, DUPLICATE, MANUAL_ENTRY_REQUIRED)
- *       GET /v1/reports/pnl
+ *   - On the first real request the client auto-logs in using the current role's
+ *     credentials and caches the JWT in sessionStorage under "munshi_token".
+ *     Call auth.logout() or setActiveRole() to clear and re-login.
  *
  * Mock mode (NEXT_PUBLIC_USE_MOCK=true or unset):
  *   - All calls are handled by the in-memory service in @/lib/mock/service.
@@ -52,28 +48,45 @@ export const auth = {
   },
 };
 
+/** Called by RoleProvider when the user switches role. Clears token and stores role. */
+export function setActiveRole(role: string): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem("munshi_role", role);
+    auth.logout();
+  }
+}
+
 // ---------------------------------------------------------------------------
-// Auto-login with the demo accountant credentials (seeded by `python -m seed.seed`).
-// Credentials are hardcoded here because this is a local demo — there are no
-// production secrets involved.  Change them if you re-seed with different values.
+// Auto-login — credentials keyed by demo role
 // ---------------------------------------------------------------------------
 
-const DEMO_EMAIL = "accountant@acme.demo";
-const DEMO_PASSWORD = "demo1234";
+const ROLE_CREDENTIALS: Record<string, { email: string; password: string }> = {
+  Accountant: { email: "accountant@acme.demo", password: "demo1234" },
+  CA:         { email: "ca@ca-firm.demo",       password: "demo1234" },
+  Investor:   { email: "investor@acme.demo",    password: "demo1234" },
+};
 
 async function ensureToken(): Promise<string> {
   const existing = getToken();
   if (existing) return existing;
 
+  const role = (typeof window !== "undefined" ? localStorage.getItem("munshi_role") : null) ?? "Accountant";
+  const creds = ROLE_CREDENTIALS[role] ?? ROLE_CREDENTIALS["Accountant"];
+
   const response = await fetch(`${baseUrl}/v1/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: DEMO_EMAIL, password: DEMO_PASSWORD }),
+    body: JSON.stringify({ email: creds.email, password: creds.password }),
   });
 
   if (!response.ok) {
-    const message = await response.text().catch(() => "");
-    throw new Error(message || `Login failed (${response.status}). Make sure the backend is running and seeded.`);
+    const text = await response.text().catch(() => "");
+    let message = `Login failed (${response.status}). Make sure the backend is running and seeded.`;
+    try {
+      const prob = JSON.parse(text) as { detail?: string };
+      if (typeof prob.detail === "string") message = prob.detail;
+    } catch { if (text) message = text; }
+    throw new Error(message);
   }
 
   const data = (await response.json()) as { access_token: string };
@@ -87,68 +100,65 @@ async function ensureToken(): Promise<string> {
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = await ensureToken();
-
   const isFormData = options.body instanceof FormData;
-  const response = await fetch(`${baseUrl}/v1${path}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      ...(isFormData ? {} : { "Content-Type": "application/json" }),
-      ...options.headers,
-    },
+
+  const makeHeaders = (tok: string) => ({
+    Authorization: `Bearer ${tok}`,
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...options.headers,
   });
 
+  const fetchOnce = async (tok: string) => fetch(`${baseUrl}/v1${path}`, { ...options, headers: makeHeaders(tok) });
+
+  let response = await fetchOnce(token);
+
   if (response.status === 401) {
-    // Token expired mid-session — clear and retry once.
     auth.logout();
     const freshToken = await ensureToken();
-    const retry = await fetch(`${baseUrl}/v1${path}`, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${freshToken}`,
-        ...(isFormData ? {} : { "Content-Type": "application/json" }),
-        ...options.headers,
-      },
-    });
-    if (!retry.ok) {
-      const message = await retry.text().catch(() => "");
-      throw new Error(message || `The request failed (${retry.status}).`);
-    }
-    return retry.json() as Promise<T>;
+    response = await fetchOnce(freshToken);
   }
 
   if (!response.ok) {
-    const message = await response.text().catch(() => "");
-    throw new Error(message || `The request failed (${response.status}).`);
+    const text = await response.text().catch(() => "");
+    let message = `The request failed (${response.status}).`;
+    try {
+      const prob = JSON.parse(text) as {
+        detail?: string | { msg: string }[];
+        reasons?: { message: string }[];
+        code?: string;
+      };
+      if (Array.isArray(prob.reasons) && prob.reasons.length > 0) {
+        message = prob.reasons.map((r) => r.message).join("; ");
+      } else if (typeof prob.detail === "string") {
+        message = prob.detail;
+      } else if (Array.isArray(prob.detail)) {
+        message = prob.detail.map((d) => d.msg).join("; ");
+      }
+    } catch { if (text) message = text; }
+    throw new Error(message);
   }
 
   return response.json() as Promise<T>;
 }
 
 // ---------------------------------------------------------------------------
-// Generic request helper for routes without the /v1 prefix (e.g. /public/*)
+// Generic request helper for public routes (no /v1 prefix, no auth)
 // ---------------------------------------------------------------------------
 
 async function requestPublic<T>(path: string): Promise<T> {
   const response = await fetch(`${baseUrl}${path}`);
   if (!response.ok) {
-    const message = await response.text().catch(() => "");
-    throw new Error(message || `The request failed (${response.status}).`);
+    const text = await response.text().catch(() => "");
+    throw new Error(text || `The request failed (${response.status}).`);
   }
   return response.json() as Promise<T>;
 }
 
 // ---------------------------------------------------------------------------
-// Shape adapters: map backend response shapes to the frontend types
+// Shape adapters
 // ---------------------------------------------------------------------------
 
-/**
- * DocumentOut / ProposalOut (backend) → Invoice (frontend)
- *
- * The backend stores monetary values as integer paise; the frontend expects
- * rupees (float).  Confidence is a 0–1 float on the backend.
- */
-function proposalToInvoice(proposal: {
+type ProposalRaw = {
   id: string;
   document_id: string;
   status: string;
@@ -160,46 +170,48 @@ function proposalToInvoice(proposal: {
   doc_type: string | null;
   total_paise: number | null;
   created_at: string | null;
-}): Invoice {
+};
+
+function proposalToInvoice(proposal: ProposalRaw): Invoice {
   const facts = (proposal.facts ?? {}) as Record<string, unknown>;
   const totalPaise = proposal.total_paise ?? 0;
-  const taxRate = (facts.tax_rate as number | undefined) ?? 18;
-  const base = Math.round((totalPaise / (1 + taxRate / 100)) / 100); // paise → rupees
-  const tax = Math.round(totalPaise / 100) - base;
 
-  // Map backend proposal status to frontend TrustState
+  // InvoiceFacts stores gst_rate_bp in basis points on lines[0]
+  const lines = (facts.lines as { gst_rate_bp?: number }[] | undefined) ?? [];
+  const gstRateBp = lines[0]?.gst_rate_bp ?? 1800;
+  const taxRate = gstRateBp / 100;
+  const base = totalPaise > 0 ? Math.round((totalPaise / (1 + taxRate / 100)) / 100) : 0;
+  const tax  = totalPaise > 0 ? Math.round(totalPaise / 100) - base : 0;
+
   const statusMap: Record<string, Invoice["status"]> = {
-    DRAFT_AI: "DRAFT BY AI",
-    NEEDS_REVIEW: "REVIEWED",
-    DUPLICATE: "REVIEWED",
-    MANUAL_ENTRY_REQUIRED: "REVIEWED",
-    APPROVED: "APPROVED",
-    ANCHORED: "ANCHORED",
+    DRAFT_AI:              "DRAFT BY AI",
+    NEEDS_REVIEW:          "NEEDS REVIEW",
+    DUPLICATE:             "DUPLICATE",
+    MANUAL_ENTRY_REQUIRED: "MANUAL ENTRY",
+    APPROVED:              "APPROVED",
+    ANCHORED:              "ANCHORED",
   };
 
   return {
-    id: proposal.document_id,
-    number: (facts.invoice_number as string | undefined) ?? proposal.document_id.slice(-8).toUpperCase(),
-    supplier: (facts.supplier_name as string | undefined) ?? "Unknown supplier",
-    date: (facts.invoice_date as string | undefined) ?? (proposal.created_at?.slice(0, 10) ?? ""),
-    dueDate: (facts.due_date as string | undefined) ?? "",
-    amount: Math.round(totalPaise / 100),
+    id:          proposal.document_id,
+    number:      (facts.invoice_no as string | undefined) ?? proposal.document_id.slice(-8).toUpperCase(),
+    supplier:    (facts.counterparty_name as string | undefined) ?? "Unknown supplier",
+    date:        (facts.invoice_date as string | undefined) ?? (proposal.created_at?.slice(0, 10) ?? ""),
+    dueDate:     "",
+    amount:      Math.round(totalPaise / 100),
     base,
     tax,
     taxRate,
-    category: (facts.category as string | undefined) ?? proposal.doc_type ?? "General",
-    gstin: (facts.supplier_gstin as string | undefined) ?? "",
-    status: statusMap[proposal.status] ?? "DRAFT BY AI",
+    category:    (facts.category as string | undefined) ?? proposal.doc_type ?? "General",
+    gstin:       (facts.counterparty_gstin as string | undefined) ?? "",
+    status:      statusMap[proposal.status] ?? "NEEDS REVIEW",
     description: proposal.reasons.join("; ") || "AI-extracted document",
-    ruleId: proposal.ruleset_version ?? "UNKNOWN",
-    confidence: (facts.confidence_min as number | undefined) ?? 0.9,
+    ruleId:      proposal.ruleset_version ?? "UNKNOWN",
+    confidence:  0.9,
   };
 }
 
-/**
- * JournalOut (backend) → Journal (frontend)
- */
-function journalOutToJournal(j: {
+type JournalRaw = {
   id: string;
   source_document_id: string | null;
   narration: string;
@@ -207,26 +219,28 @@ function journalOutToJournal(j: {
   created_by: string;
   status: string;
   lines: { line_no: number; account_code: string; debit_paise: number; credit_paise: number; memo: string }[];
-}): Journal {
+};
+
+function journalOutToJournal(j: JournalRaw): Journal {
   const statusMap: Record<string, Journal["status"]> = {
-    DRAFT: "DRAFT BY AI",
-    POSTED: "REVIEWED",
+    DRAFT:    "DRAFT BY AI",
+    POSTED:   "REVIEWED",
     APPROVED: "APPROVED",
     ANCHORED: "ANCHORED",
   };
   return {
-    id: j.id,
-    invoiceId: j.source_document_id ?? "",
+    id:          j.id,
+    invoiceId:   j.source_document_id ?? "",
     description: j.narration,
-    date: j.entry_date,
-    preparedBy: j.created_by,
-    status: statusMap[j.status] ?? "DRAFT BY AI",
-    lines: j.lines.map((line) => ({
-      id: `${j.id}-${line.line_no}`,
+    date:        j.entry_date,
+    preparedBy:  j.created_by,
+    status:      statusMap[j.status] ?? "DRAFT BY AI",
+    lines:       j.lines.map((line) => ({
+      id:      `${j.id}-${line.line_no}`,
       account: line.account_code,
-      debit: Math.round(line.debit_paise / 100),
-      credit: Math.round(line.credit_paise / 100),
-      source: line.memo,
+      debit:   Math.round(line.debit_paise / 100),
+      credit:  Math.round(line.credit_paise / 100),
+      source:  line.memo,
     })),
   };
 }
@@ -241,73 +255,69 @@ export const api = {
   getCompanySnapshot: async (): Promise<CompanySnapshot> => {
     if (useMock) return mock.listMockData();
 
-    // Run the three independent calls in parallel.
-    const [me, proposalsRaw, pnlRaw] = await Promise.all([
+    const [me, proposalsRaw, pnlRaw, periodsRaw, gstRaw] = await Promise.all([
       request<{
-        name: string;
-        email: string;
+        name: string; email: string;
         workspace: { name: string; gstin: string };
-        workspace_id: string;
-        role: string;
+        workspace_id: string; role: string;
       }>("/auth/me"),
-      request<{ items: Parameters<typeof proposalToInvoice>[0][] }>("/proposals"),
+      request<{ items: ProposalRaw[] }>("/proposals"),
       request<{
-        total_income: string;
-        total_expenses: string;
-        net_profit: string;
-        total_income_paise: number;
-        total_expenses_paise: number;
-        net_profit_paise: number;
-        period_id: string;
+        total_income_paise: number; total_expenses_paise: number; net_profit_paise: number;
         income: { code: string; name: string; amount_paise: number; amount: string }[];
         expenses: { code: string; name: string; amount_paise: number; amount: string }[];
       }>("/reports/pnl"),
+      request<{ id: string; name: string; status: string }[]>("/periods"),
+      request<{
+        output_cgst_paise: number; output_sgst_paise: number; output_igst_paise: number;
+        itc_cgst_paise: number; itc_sgst_paise: number; itc_igst_paise: number;
+        net_payable_paise: number;
+      }>("/tax/gst/summary").catch(() => null),
     ]);
 
     const invoices = proposalsRaw.items.map(proposalToInvoice);
 
-    // Fetch draft journals: collect draft_entry_ids from proposals and resolve in parallel.
+    // Fetch draft journals from draft_entry_ids
     const draftEntryIds = proposalsRaw.items
       .map((p) => p.draft_entry_id)
       .filter((id): id is string => !!id);
-
-    const journals = await Promise.all(
+    const journals = (await Promise.all(
       draftEntryIds.map((id) =>
-        request<Parameters<typeof journalOutToJournal>[0]>(`/journals/${encodeURIComponent(id)}`)
-          .then(journalOutToJournal)
-          .catch(() => null)
+        request<JournalRaw>(`/journals/${encodeURIComponent(id)}`).then(journalOutToJournal).catch(() => null)
       )
-    ).then((results) => results.filter((j): j is Journal => j !== null));
+    )).filter((j): j is Journal => j !== null);
 
-    // The backend PnlOut is period-based, not month-based.  Build a minimal
-    // PnlReport shape so the existing dashboard charts keep working.
+    const gst = gstRaw
+      ? {
+          output: Math.round((gstRaw.output_cgst_paise + gstRaw.output_sgst_paise + gstRaw.output_igst_paise) / 100),
+          input:  Math.round((gstRaw.itc_cgst_paise + gstRaw.itc_sgst_paise + gstRaw.itc_igst_paise) / 100),
+          netDue: Math.round(gstRaw.net_payable_paise / 100),
+        }
+      : { output: 0, input: 0, netDue: 0 };
+
+    // Build fy string from first period name e.g. "FY2026-27" -> "2026-27"
+    const fyRaw = periodsRaw[0]?.name ?? "FY2026-27";
+    const fy = fyRaw.replace(/^FY/, "").replace("-", "–");
+
     const pnl: PnlReport = {
       company: me.workspace.name,
-      fy: "2026–27",
-      months: [
-        {
-          month: "Current period",
-          revenue: Math.round(pnlRaw.total_income_paise / 100),
-          expenses: Math.round(pnlRaw.total_expenses_paise / 100),
-          profit: Math.round(pnlRaw.net_profit_paise / 100),
-          cash: Math.round(pnlRaw.total_income_paise / 100), // best approximation available
-        },
-      ],
+      fy,
+      months: [{
+        month:    "Current period",
+        revenue:  Math.round(pnlRaw.total_income_paise / 100),
+        expenses: Math.round(pnlRaw.total_expenses_paise / 100),
+        profit:   Math.round(pnlRaw.net_profit_paise / 100),
+        cash:     Math.round(pnlRaw.total_income_paise / 100),
+      }],
       topExpenses: pnlRaw.expenses
         .sort((a, b) => b.amount_paise - a.amount_paise)
         .slice(0, 5)
         .map((row) => ({ name: row.name, amount: Math.round(row.amount_paise / 100) })),
-      gst: { output: 0, input: 0, netDue: 0 }, // GST summary available via /v1/tax/gst-summary
+      gst,
     };
 
     return {
-      company: {
-        name: me.workspace.name,
-        gstin: me.workspace.gstin,
-        fy: "2026–27",
-        preparer: me.name,
-        ca: "CA Demo",
-      },
+      company: { name: me.workspace.name, gstin: me.workspace.gstin, fy, preparer: me.name, ca: me.name },
       invoices,
       journals,
       ledger: [],
@@ -321,26 +331,17 @@ export const api = {
     if (useMock) return mock.uploadMockDocument(file);
     const form = new FormData();
     form.append("file", file);
-    // Backend returns DocumentOut which contains an optional `proposal` field.
-    const result = await request<{
-      id: string;
-      proposal: Parameters<typeof proposalToInvoice>[0] | null;
-    }>("/documents", { method: "POST", body: form });
+    const result = await request<{ id: string; proposal: ProposalRaw | null }>("/documents", {
+      method: "POST",
+      body: form,
+    });
     if (result.proposal) return proposalToInvoice(result.proposal);
-    // Fallback: return a minimal invoice from the document record.
     return {
-      id: result.id,
-      number: result.id.slice(-8).toUpperCase(),
-      supplier: "Uploaded document",
-      date: new Date().toLocaleDateString("en-GB"),
-      dueDate: "",
-      amount: 0, base: 0, tax: 0, taxRate: 18,
-      category: "General",
-      gstin: "",
-      status: "DRAFT BY AI",
-      description: "Document uploaded — no proposal generated yet.",
-      ruleId: "UNKNOWN",
-      confidence: 0,
+      id: result.id, number: result.id.slice(-8).toUpperCase(),
+      supplier: "Uploaded document", date: new Date().toLocaleDateString("en-GB"), dueDate: "",
+      amount: 0, base: 0, tax: 0, taxRate: 18, category: "General", gstin: "",
+      status: "MANUAL ENTRY", description: "Document uploaded — no proposal generated yet.",
+      ruleId: "UNKNOWN", confidence: 0,
     };
   },
 
@@ -349,174 +350,179 @@ export const api = {
   draftJournal: async (input: DraftJournalInput): Promise<Journal> => {
     if (useMock) return mock.draftMockJournal(input);
 
-    // In live mode the pipeline already auto-drafts a journal when a document is
-    // uploaded (docintel pipeline → ledger.create_draft). We fetch that draft by
-    // looking up the proposal for this document_id and reading its draft_entry_id.
-    // If no draft exists yet we create one via the proper InvoiceFacts path.
-    const proposals = await request<{
-      items: { document_id: string; draft_entry_id: string | null; status: string }[];
-    }>("/proposals");
-
-    const proposal = proposals.items.find((p) => p.document_id === input.invoiceId);
-    if (proposal?.draft_entry_id) {
-      // Draft already exists — fetch and return it without calling the engine again.
-      return request<Parameters<typeof journalOutToJournal>[0]>(
-        `/journals/${encodeURIComponent(proposal.draft_entry_id)}`
-      ).then(journalOutToJournal);
+    // Check if pipeline already created a draft for this document
+    const proposalsRaw = await request<{ items: { document_id: string; draft_entry_id: string | null }[] }>("/proposals");
+    const existing = proposalsRaw.items.find((p) => p.document_id === input.invoiceId);
+    if (existing?.draft_entry_id) {
+      return request<JournalRaw>(`/journals/${encodeURIComponent(existing.draft_entry_id)}`).then(journalOutToJournal);
     }
 
-    // No auto-draft yet (e.g. NEEDS_REVIEW without a draft). Convert the display
-    // amounts to paise and snap the GST rate to the nearest valid slab so the
-    // rules engine accepts it.
+    // Manual draft path: reconstruct InvoiceFacts, snapping GST rate to nearest valid slab
     const VALID_SLABS_BP = [0, 500, 1200, 1800, 2800];
-    const snapSlab = (bp: number) =>
-      VALID_SLABS_BP.reduce((best, s) => (Math.abs(s - bp) < Math.abs(best - bp) ? s : best));
+    const snap = (bp: number) => VALID_SLABS_BP.reduce((b, s) => (Math.abs(s - bp) < Math.abs(b - bp) ? s : b));
 
-    // All display amounts are in whole rupees — multiply by 100 to get paise.
-    const totalDebitRupees = input.lines.reduce((sum, l) => sum + l.debit, 0);
-    const gstLine = input.lines.find((l) => l.account.toLowerCase().includes("gst"));
-    const taxRupees  = gstLine ? gstLine.debit : 0;
-    const baseRupees = totalDebitRupees - taxRupees;
-
+    const totalRupees = input.lines.reduce((sum, l) => sum + l.debit, 0);
+    const gstLine     = input.lines.find((l) => l.account.toLowerCase().includes("gst"));
+    const taxRupees   = gstLine ? gstLine.debit : 0;
+    const baseRupees  = totalRupees - taxRupees;
     const taxablePaise = Math.round(baseRupees * 100);
-    const rawBp = baseRupees > 0 ? Math.round((taxRupees / baseRupees) * 10000) : 1800;
-    const gstRateBp   = snapSlab(rawBp);
 
-    // Parse date from DD-MM-YYYY → YYYY-MM-DD.
+    if (taxablePaise <= 0) {
+      throw new Error(
+        "Cannot create a draft: the invoice base amount is zero or missing. " +
+        "Go to the Review screen — the pipeline may have already drafted this entry."
+      );
+    }
+
+    const rawBp     = baseRupees > 0 ? Math.round((taxRupees / baseRupees) * 10000) : 1800;
+    const gstRateBp = snap(rawBp);
+
     let invoiceDateIso = input.date;
     if (/^\d{2}-\d{2}-\d{4}$/.test(input.date)) {
       const [dd, mm, yyyy] = input.date.split("-");
       invoiceDateIso = `${yyyy}-${mm}-${dd}`;
     }
 
-    const invoiceFacts = {
-      doc_type: "purchase_invoice",
-      invoice_no: input.invoiceId,
-      invoice_date: invoiceDateIso,
-      counterparty_name: input.description.split(" — ")[0] ?? input.description,
-      counterparty_gstin: null,
-      category: input.lines[0]?.account ?? null,
-      lines: [{ description: input.description, taxable_paise: taxablePaise, gst_rate_bp: gstRateBp }],
-      declared_total_paise: Math.round(totalDebitRupees * 100),
-    };
-
-    return request<Parameters<typeof journalOutToJournal>[0]>("/journals/draft", {
+    return request<JournalRaw>("/journals/draft", {
       method: "POST",
-      body: JSON.stringify(invoiceFacts),
+      body: JSON.stringify({
+        doc_type: "purchase_invoice",
+        invoice_no: input.invoiceId,
+        invoice_date: invoiceDateIso,
+        counterparty_name: input.description.split(" — ")[0] ?? input.description,
+        counterparty_gstin: null,
+        category: input.lines[0]?.account ?? null,
+        lines: [{ description: input.description, taxable_paise: taxablePaise, gst_rate_bp: gstRateBp }],
+        declared_total_paise: Math.round(totalRupees * 100),
+      }),
     }).then(journalOutToJournal);
   },
 
   postJournal: (id: string): Promise<Journal> =>
     useMock
       ? mock.postMockJournal(id)
-      : request<Parameters<typeof journalOutToJournal>[0]>(`/journals/${encodeURIComponent(id)}/post`, {
-          method: "POST",
-          body: JSON.stringify({}),
-        }).then(journalOutToJournal),
+      : request<JournalRaw>(`/journals/${encodeURIComponent(id)}/post`, { method: "POST", body: JSON.stringify({}) })
+          .then(journalOutToJournal),
 
   // ── Approvals ─────────────────────────────────────────────────────────────
 
   approveJournal: (id: string, input: ApproveInput): Promise<ApproveResponse> =>
     useMock
       ? mock.approveMockJournal(id, input)
-      : request<{ state: string; decided_by: string | null; anchor_batch: { tx_hash?: string } | null; snapshot: { id: string; status: string; source_document_id: string | null; narration: string; entry_date: string; created_by: string; lines: unknown[] } }>(
-          `/approvals/${encodeURIComponent(id)}/approve`,
-          { method: "POST", body: JSON.stringify({ note: input.note }) }
-        ).then((res) => ({
-          journal: journalOutToJournal(res.snapshot as Parameters<typeof journalOutToJournal>[0]),
-          trustState: "ANCHORED" as const,
-          signedBy: res.decided_by ?? input.signer,
-          anchorTx: res.anchor_batch?.tx_hash ?? "",
-        })),
+      : request<{
+          state: string; decided_by: string | null;
+          anchor_batch: { tx_hash?: string } | null;
+          snapshot: JournalRaw;
+        }>(`/approvals/${encodeURIComponent(id)}/approve`, {
+            method: "POST",
+            body: JSON.stringify({ note: input.note }),
+          })
+          .then((res) => ({
+            journal:    journalOutToJournal(res.snapshot),
+            trustState: "ANCHORED" as const,
+            signedBy:   res.decided_by ?? input.signer,
+            anchorTx:   res.anchor_batch?.tx_hash ?? "",
+          })),
 
   // ── Reports ───────────────────────────────────────────────────────────────
 
-  getPnl: (): Promise<PnlReport> =>
-    useMock
-      ? mock.getMockPnl()
-      : request<{
-          total_income_paise: number;
-          total_expenses_paise: number;
-          net_profit_paise: number;
-          expenses: { code: string; name: string; amount_paise: number; amount: string }[];
-        }>("/reports/pnl").then((raw) => ({
-          company: "Acme Pvt Ltd",
-          fy: "2026–27",
-          months: [
-            {
-              month: "Current period",
-              revenue: Math.round(raw.total_income_paise / 100),
-              expenses: Math.round(raw.total_expenses_paise / 100),
-              profit: Math.round(raw.net_profit_paise / 100),
-              cash: Math.round(raw.total_income_paise / 100),
-            },
-          ],
-          topExpenses: raw.expenses
-            .sort((a, b) => b.amount_paise - a.amount_paise)
-            .slice(0, 5)
-            .map((row) => ({ name: row.name, amount: Math.round(row.amount_paise / 100) })),
-          gst: { output: 0, input: 0, netDue: 0 },
-        })),
+  getPnl: async (): Promise<PnlReport> => {
+    if (useMock) return mock.getMockPnl();
 
-  /**
-   * createPack — the backend expects `period_id`, not `fy`/`company`.
-   * We first fetch the current period list and use the most recent open period.
-   */
+    const [pnlRaw, gstRaw, meRaw, periodsRaw] = await Promise.all([
+      request<{
+        total_income_paise: number; total_expenses_paise: number; net_profit_paise: number;
+        expenses: { code: string; name: string; amount_paise: number; amount: string }[];
+      }>("/reports/pnl"),
+      request<{
+        output_cgst_paise: number; output_sgst_paise: number; output_igst_paise: number;
+        itc_cgst_paise: number; itc_sgst_paise: number; itc_igst_paise: number;
+        net_payable_paise: number;
+      }>("/tax/gst/summary").catch(() => null),
+      request<{ name: string; workspace: { name: string } }>("/auth/me"),
+      request<{ name: string }[]>("/periods"),
+    ]);
+
+    const gst = gstRaw
+      ? {
+          output: Math.round((gstRaw.output_cgst_paise + gstRaw.output_sgst_paise + gstRaw.output_igst_paise) / 100),
+          input:  Math.round((gstRaw.itc_cgst_paise + gstRaw.itc_sgst_paise + gstRaw.itc_igst_paise) / 100),
+          netDue: Math.round(gstRaw.net_payable_paise / 100),
+        }
+      : { output: 0, input: 0, netDue: 0 };
+
+    const fyRaw = periodsRaw[0]?.name ?? "FY2026-27";
+    const fy = fyRaw.replace(/^FY/, "").replace("-", "–");
+
+    return {
+      company: meRaw.workspace.name,
+      fy,
+      months: [{
+        month:    "Current period",
+        revenue:  Math.round(pnlRaw.total_income_paise / 100),
+        expenses: Math.round(pnlRaw.total_expenses_paise / 100),
+        profit:   Math.round(pnlRaw.net_profit_paise / 100),
+        cash:     Math.round(pnlRaw.total_income_paise / 100),
+      }],
+      topExpenses: pnlRaw.expenses
+        .sort((a, b) => b.amount_paise - a.amount_paise)
+        .slice(0, 5)
+        .map((row) => ({ name: row.name, amount: Math.round(row.amount_paise / 100) })),
+      gst,
+    };
+  },
+
   createPack: async (): Promise<PackResponse> => {
     if (useMock) return mock.createMockPack();
 
-    // Fetch available periods to find the current open one.
     const periods = await request<{ id: string; name: string; status: string }[]>("/periods");
     const openPeriod = periods.find((p) => p.status === "OPEN") ?? periods[0];
     if (!openPeriod) throw new Error("No accounting period found. Seed the backend first.");
 
-    const raw = await request<{
-      report_id: string;
-      sha256: string;
-      filename: string;
-      anchor: { tx_hash?: string | null } | null;
-    }>("/reports/pack", {
-      method: "POST",
-      body: JSON.stringify({ period_id: openPeriod.id }),
-    });
+    const raw = await request<{ report_id: string; sha256: string; anchor: { tx_hash?: string | null } | null }>(
+      "/reports/pack",
+      { method: "POST", body: JSON.stringify({ period_id: openPeriod.id }) }
+    );
 
-    // Build a PackResponse from what the backend returns.
+    // Read real signoffs from the proof
+    const proof = await request<{ signoffs?: { name: string; role: string; time: string }[] }>(
+      `/reports/${raw.report_id}/proof`
+    ).catch(() => null);
+
+    const signoffs = proof?.signoffs?.map((s) => ({ name: s.name, role: s.role, date: s.time.slice(0, 10) }))
+      ?? [{ name: "CA Demo", role: "Chartered Accountant", date: new Date().toLocaleDateString("en-GB") }];
+
     const pnl = await api.getPnl();
     return {
-      id: raw.report_id,
-      generatedAt: new Date().toISOString(),
-      hash: raw.sha256,
-      anchorTx: raw.anchor?.tx_hash ?? "",
-      signoffs: [{ name: "CA Demo", role: "Chartered Accountant", date: new Date().toLocaleDateString("en-GB") }],
-      report: pnl,
+      id:           raw.report_id,
+      generatedAt:  new Date().toISOString(),
+      hash:         raw.sha256,
+      anchorTx:     raw.anchor?.tx_hash ?? "",
+      signoffs,
+      report:       pnl,
     };
   },
 
   // ── Verification ──────────────────────────────────────────────────────────
 
-  /**
-   * verify — the backend exposes this at /public/verify (no /v1 prefix, no auth).
-   */
   verify: (hash: string): Promise<VerifyResponse> =>
     useMock
       ? mock.verifyMockHash(hash)
       : requestPublic<{
-          verdict: string;
-          hash: string;
+          verdict: string; hash: string;
           anchor: { tx?: string | null } | null;
           signoffs: { name: string; role: string; time: string }[];
-          report: { sources?: { filename?: string } } | null;
-        }>(`/public/verify?hash=${encodeURIComponent(hash)}`).then((raw) => ({
-          match: raw.verdict === "MATCH",
-          hash: raw.hash,
-          anchorTx: raw.anchor?.tx ?? undefined,
-          signoffs: raw.signoffs.map((s) => ({ name: s.name, role: s.role, date: s.time.slice(0, 10) })),
-          packName: raw.report?.sources?.filename,
-          message:
-            raw.verdict === "MATCH"
+          report: Record<string, unknown> | null;
+        }>(`/public/verify?hash=${encodeURIComponent(hash)}`)
+          .then((raw) => ({
+            match:    raw.verdict === "MATCH",
+            hash:     raw.hash,
+            anchorTx: raw.anchor?.tx ?? undefined,
+            signoffs: raw.signoffs.map((s) => ({ name: s.name, role: s.role, date: s.time.slice(0, 10) })),
+            message:  raw.verdict === "MATCH"
               ? "This report matches a signed, anchored record."
               : raw.verdict === "PENDING"
                 ? "The report exists but has not been anchored yet."
                 : "No signed report matches that hash.",
-        })),
+          })),
 };
